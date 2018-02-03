@@ -1,0 +1,4 @@
+<launch>
+	<node pkg="receipt_reader" name="main" type="main" />
+	<test test-name="main_test" pkg="receipt_reader" type="main_test">
+</launch>

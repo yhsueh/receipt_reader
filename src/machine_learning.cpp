@@ -2,6 +2,7 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/ml.hpp"
 #include "opencv2/objdetect.hpp"
+#include "machine_learning.hpp"
 #include <ros/package.h>
 #include <vector>
 #include <string>
@@ -111,27 +112,21 @@ void convert_to_ml( const vector< Mat > & train_samples, Mat& trainData )
 }
 
 void training(vector <int> &labels, Mat &train_data) {
-	Ptr< SVM > svm = SVM::create();
+	
     /* Default values to train SVM */
-    svm->setCoef0( 0.0 );
-    svm->setDegree( 3 );
-    svm->setTermCriteria( TermCriteria( CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 1000, 1e-3 ) );
-    svm->setGamma( 0 );
-    svm->setKernel( SVM::LINEAR );
-    svm->setNu( 0.5 );
-    svm->setP( 0.1 ); // for EPSILON_SVR, epsilon in loss function?
-    svm->setC( 0.01 ); // From paper, soft classifier
-    svm->setType( SVM::EPS_SVR ); // C_SVC; // EPSILON_SVR; // may be also NU_SVR; // do regression task
-	svm->train( train_data, ROW_SAMPLE, labels );
+    bool automatic = true; //Auto Train SVM
+    std::string svm_path = ros::package::getPath("receipt_reader") + "receipt_reader/digitSVM.yml";
+    std::string hog_path = ros::package::getPath("receipt_reader") + "receipt_reader/hog.xml";
+    Ptr< SVM > svm = SVM::create();
 
-	HOGDescriptor hog;
-	hog.cellSize = Size(10,10);
-    hog.blockSize = Size(10,10);
-    hog.blockStride = Size(5,5);
-	hog.winSize = Size(20,30);
-	cout << "HOG" << hog.winSize.width << endl;
-	hog.setSVMDetector(get_svm_detector(svm));
-	hog.save("obj_det");
+    cout << "Training Process1 Begins" << endl;        
+    svm->setKernel( SVM::LINEAR);
+    svm->setType( SVM::C_SVC);
+    svm->setTermCriteria( TermCriteria( CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 1000, 1e-3 ) );
+    Ptr<TrainData> trainData = TrainData::create(train_data, ROW_SAMPLE, labels);
+    svm->trainAuto(trainData);
+    cout << "Training Process1 Ends" << endl;
+    svm->save(svm_path);
 }
 
 int main() {
@@ -150,9 +145,8 @@ int main() {
 	}
 
 	convert_to_ml(grad_list, train_data);
+    cout << "trainSize" << train_data.size().height << endl;
 	training(label_vec, train_data);
-
-
 
 	return 0;
 }
